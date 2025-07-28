@@ -7,7 +7,6 @@ import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
 import { chatAgent } from '../agents/chatAgent';
 
-
 export const ChatInputSchema = z.object({
   prompt: z.string(),
   temperature: z.number().optional(),
@@ -18,8 +17,7 @@ export const ChatInputSchema = z.object({
 // 1. fetchContext – passthrough (placeholder)
 const fetchContext = createStep({
   id: 'fetchContext',
-  description:
-    'Placeholder step – you might want to fetch some information for your agent here',
+  description: 'Placeholder step – you might want to fetch some information for your agent here',
   inputSchema: ChatInputSchema,
   outputSchema: ChatInputSchema.extend({
     context: z.any().optional(),
@@ -40,7 +38,7 @@ const buildAgentContext = createStep({
       z.object({
         role: z.enum(['system', 'user', 'assistant']),
         content: z.string(),
-      })
+      }),
     ),
     temperature: z.number().optional(),
     maxTokens: z.number().optional(),
@@ -49,9 +47,7 @@ const buildAgentContext = createStep({
     const { prompt, temperature, maxTokens, systemPrompt } = inputData;
 
     const messages = [
-      ...(systemPrompt
-        ? ([{ role: 'system' as const, content: systemPrompt }] as const)
-        : []),
+      ...(systemPrompt ? ([{ role: 'system' as const, content: systemPrompt }] as const) : []),
       { role: 'user' as const, content: prompt },
     ];
 
@@ -108,4 +104,4 @@ export const chatWorkflow = createWorkflow({
   .then(buildAgentContext)
   .then(callAgent)
   .then(streamResponse)
-  .commit(); 
+  .commit();

@@ -6,18 +6,18 @@ import { apiRoutes } from './apiRegistry';
 
 // Create Mastra instance
 export const mastra = new Mastra({
-	// Agents: Mastra primitive to interact with LLMs
-	// Docs: https://mastra.ai/en/docs/agents/overview
-	agents: { chatAgent },
+  // Agents: Mastra primitive to interact with LLMs
+  // Docs: https://mastra.ai/en/docs/agents/overview
+  agents: { chatAgent },
 
-	workflows: { chatWorkflow },
-	storage: new LibSQLStore({
-		url: ":memory:"
-	}),
-	telemetry: {
-		enabled: true,
-	},
-	server: {
-		apiRoutes,
-	},
+  workflows: { chatWorkflow },
+  storage: new LibSQLStore({
+    url: ':memory:',
+  }),
+  telemetry: {
+    enabled: true,
+  },
+  server: {
+    apiRoutes,
+  },
 });
