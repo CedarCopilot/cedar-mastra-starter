@@ -8,24 +8,31 @@
     "dev:mastra": "npm --prefix src/backend run dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "pretty": "npx prettier --write ."
   },
   "dependencies": {
+    "@xyflow/react": "^12.8.2",
+    "cedar-os": "latest",
+    "lucide-react": "^0.532.0",
+    "motion-plus-react": "^1.5.1",
+    "next": "15.4.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.4.4"
+    "reactflow": "^11.11.4"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
+    "concurrently": "^8.2.1",
+    "dotenv-cli": "^7.3.0",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
-    "@eslint/eslintrc": "^3",
-    "concurrently": "^8.2.1",
-    "dotenv-cli": "^7.3.0"
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "prettier": "^3.2.4"
   }
 }
