@@ -1,3 +1,9 @@
+// ---------------------------------------------
+// Agents are a Mastra primitive to interact with LLMs
+// Docs: https://mastra.ai/en/docs/agents/overview
+// ---------------------------------------------
+
+
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
 

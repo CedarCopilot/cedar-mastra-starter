@@ -1,37 +1,45 @@
 import { registerApiRoute } from '@mastra/core/server';
-import { chatAgent } from './agents/chatAgent';
-import { z } from 'zod';
+import { ChatInputSchema, chatWorkflow } from './workflows/chatWorkflow';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
-// Basic chat schema
-const ChatRequestSchema = z.object({
-	prompt: z.string(),
-	temperature: z.number().optional(),
-	maxTokens: z.number().optional(),
-	systemPrompt: z.string().optional(),
-});
+// Helper function to convert Zod schema to OpenAPI schema
+function toOpenApiSchema(schema: Parameters<typeof zodToJsonSchema>[0]) {
+	return zodToJsonSchema(schema) as Record<string, unknown>;
+}
 
+
+// Register API routes to reach your Mastra server
 export const apiRoutes = [
 	registerApiRoute('/chat/execute-function', {
 		method: 'POST',
+		openapi: {
+			requestBody: {
+				content: {
+					'application/json': {
+						schema: toOpenApiSchema(ChatInputSchema),
+					},
+				},
+			},
+		},
 		handler: async (c) => {
 			try {
 				const body = await c.req.json();
 				const { prompt, temperature, maxTokens, systemPrompt } =
-					ChatRequestSchema.parse(body);
+					ChatInputSchema.parse(body);
 
-				const messages = [
-					...(systemPrompt
-						? [{ role: 'system', content: systemPrompt } as const]
-						: []),
-					{ role: 'user' as const, content: prompt },
-				];
-
-				const response = await chatAgent.generate(messages, {
-					temperature,
-					maxTokens,
+				const run = await chatWorkflow.createRunAsync();
+				const result = await run.start({
+					inputData: { prompt, temperature, maxTokens, systemPrompt },
 				});
 
-				return c.json({ text: response.text, usage: response.usage });
+				if (result.status === 'success') {
+					return c.json({ text: result.result.text, usage: result.result.usage });
+				}
+
+				return c.json({
+					status: result.status,
+					steps: result.steps,
+				}, 500);
 			} catch (error) {
 				console.error(error);
 				return c.json(
