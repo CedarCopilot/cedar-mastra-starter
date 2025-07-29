@@ -12,14 +12,20 @@
     "pretty": "npx prettier --write ."
   },
   "dependencies": {
+    "@radix-ui/react-slot": "^1.0.1",
     "@xyflow/react": "^12.8.2",
     "cedar-os": "^0.0.8",
+    "class-variance-authority": "^0.7.1",
+    "framer-motion": "^12.17.0",
     "lucide-react": "^0.532.0",
+    "motion": "^12.23.11",
     "motion-plus-react": "^1.5.1",
     "next": "15.4.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "reactflow": "^11.11.4"
+    "react-markdown": "^10.1.0",
+    "reactflow": "^11.11.4",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
