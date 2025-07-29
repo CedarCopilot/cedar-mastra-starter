@@ -1,6 +1,5 @@
 'use client';
 
-import { CedarCaptionChat } from '@/components/cedar-os/chatComponents/CedarCaptionChat';
 import { CedarCopilot } from 'cedar-os';
 import type { ProviderConfig } from 'cedar-os';
 import React, { ReactNode } from 'react';
@@ -16,10 +15,5 @@ export default function CedarCopilotWrapper({ children }: CedarCopilotWrapperPro
     baseURL: process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111',
   };
 
-  return (
-    <CedarCopilot llmProvider={llmProvider}>
-      {children}
-      <CedarCaptionChat />
-    </CedarCopilot>
-  );
+  return <CedarCopilot llmProvider={llmProvider}>{children}</CedarCopilot>;
 }

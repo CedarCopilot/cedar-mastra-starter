@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@xyflow/react": "^12.8.2",
-    "cedar-os": "latest",
+    "cedar-os": "^0.0.8",
     "lucide-react": "^0.532.0",
     "motion-plus-react": "^1.5.1",
     "next": "15.4.4",
@@ -31,8 +31,8 @@
     "dotenv-cli": "^7.3.0",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
+    "prettier": "^3.2.4",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "prettier": "^3.2.4"
+    "typescript": "^5"
   }
 }

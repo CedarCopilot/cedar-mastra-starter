@@ -1,5 +1,6 @@
 'use client';
 
+import { CedarCaptionChat } from '@/components/cedar-os/chatComponents/CedarCaptionChat';
 import React from 'react';
 import ReactFlow, { Background, Controls } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -13,6 +14,7 @@ export default function FlowPage() {
       <ReactFlow nodes={nodes} edges={edges} fitView>
         <Background />
         <Controls />
+        <CedarCaptionChat />
       </ReactFlow>
     </div>
   );
