@@ -6,12 +6,14 @@
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
 import { chatAgent } from '../agents/chatAgent';
+import { handleTextStream, streamJSONEvent } from '../../utils/streamUtils';
 
 export const ChatInputSchema = z.object({
   prompt: z.string(),
   temperature: z.number().optional(),
   maxTokens: z.number().optional(),
   systemPrompt: z.string().optional(),
+  streamController: z.any().optional(),
 });
 
 // 1. fetchContext – passthrough (placeholder)
@@ -24,7 +26,9 @@ const fetchContext = createStep({
   }),
   execute: async ({ inputData }) => {
     // Simply forward input for now
-    return { ...inputData, context: null };
+    const result = { ...inputData, context: null };
+
+    return result;
   },
 });
 
@@ -42,16 +46,19 @@ const buildAgentContext = createStep({
     ),
     temperature: z.number().optional(),
     maxTokens: z.number().optional(),
+    streamController: z.any().optional(),
   }),
   execute: async ({ inputData }) => {
-    const { prompt, temperature, maxTokens, systemPrompt } = inputData;
+    const { prompt, temperature, maxTokens, systemPrompt, streamController } = inputData;
 
     const messages = [
       ...(systemPrompt ? ([{ role: 'system' as const, content: systemPrompt }] as const) : []),
       { role: 'user' as const, content: prompt },
     ];
 
-    return { messages, temperature, maxTokens };
+    const result = { messages, temperature, maxTokens, streamController };
+
+    return result;
   },
 });
 
@@ -63,37 +70,63 @@ const callAgent = createStep({
   outputSchema: z.object({
     text: z.string(),
     usage: z.any().optional(),
+    streamController: z.any().optional(),
   }),
   execute: async ({ inputData }) => {
-    const { messages, temperature, maxTokens } = inputData;
+    const { messages, temperature, maxTokens, streamController } = inputData;
 
-    const response = await chatAgent.generate(messages, {
-      temperature,
-      maxTokens,
-    });
+    if (streamController) {
+      streamJSONEvent(streamController, {
+        type: 'stage_update',
+        status: 'update_begin',
+        message: 'Generating response...',
+      });
 
-    return { text: response.text, usage: response.usage };
+      const response = await chatAgent.stream(messages, {
+        temperature,
+        maxTokens,
+      });
+
+      const text = await handleTextStream(response, streamController);
+
+      streamJSONEvent(streamController, {
+        type: 'stage_update',
+        status: 'update_complete',
+        message: 'Response generated',
+      });
+
+      return { text, usage: response.usage, streamController };
+    } else {
+      const response = await chatAgent.generate(messages, {
+        temperature,
+        maxTokens,
+      });
+
+      return { text: response.text, usage: response.usage, streamController };
+    }
   },
 });
 
-// 4. streamResponse – stub (implementation TBD)
+// 4. streamResponse – finalize streaming response
 const streamResponse = createStep({
   id: 'streamResponse',
-  description: 'Stream the response (to be implemented)',
+  description: 'Finalize the streaming response',
   inputSchema: callAgent.outputSchema,
   outputSchema: z.object({
     text: z.string(),
     usage: z.any().optional(),
   }),
   execute: async ({ inputData }) => {
-    // TODO: Implement streaming to caller
-    return { text: inputData.text, usage: inputData.usage };
+    const { text, usage } = inputData;
+
+    return { text, usage };
   },
 });
 
 export const chatWorkflow = createWorkflow({
   id: 'chatWorkflow',
-  description: 'Chat workflow that replicates the old /chat/execute-function endpoint behaviour',
+  description:
+    'Chat workflow that replicates the old /chat/execute-function endpoint behaviour with optional streaming',
   inputSchema: ChatInputSchema,
   outputSchema: z.object({
     text: z.string(),

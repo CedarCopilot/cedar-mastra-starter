@@ -1,36 +1,183 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cedar-Mastra Starter
 
-## Getting Started
+A comprehensive starter template that combines [Cedar-OS](https://docs.cedarcopilot.com/) AI copilot components with [Mastra](https://mastra.ai/) workflows for building intelligent, streaming-capable applications.
 
-First, run the development server:
+## Features
+
+- **🤖 AI Chat Integration**: Built-in chat workflows powered by OpenAI through Mastra agents
+- **⚡ Real-time Streaming**: Server-sent events (SSE) for streaming AI responses
+- **🎨 Beautiful UI**: Cedar-OS components with 3D effects and modern design
+- **🔧 Type-safe Workflows**: Mastra-based backend with full TypeScript support
+- **📡 Dual API Modes**: Both streaming and non-streaming chat endpoints
+
+## Quick Start with Cedar CLI
+
+The fastest way to get started:
+
+```bash
+npx cedar-os-cli plant-seed
+```
+
+Then select this template when prompted. This will set up the entire project structure and dependencies automatically.
+
+For more details, see the [Cedar Getting Started Guide](https://docs.cedarcopilot.com/getting-started/getting-started).
+
+## Manual Setup
+
+### Prerequisites
+
+- Node.js 18+
+- OpenAI API key
+- pnpm (recommended) or npm
+
+### Installation
+
+1. **Clone and install dependencies:**
+
+```bash
+git clone <repository-url>
+cd cedar-mastra-starter
+pnpm install && cd src/backend && pnpm install && cd ../..
+```
+
+2. **Set up environment variables:**
+   Create a `.env` file in the root directory:
+
+```env
+OPENAI_API_KEY=your-openai-api-key-here
+```
+
+3. **Start the development servers:**
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This runs both the Next.js frontend and Mastra backend concurrently:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:4111
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Architecture
+
+### Frontend (Next.js + Cedar-OS)
+
+- **Simple Chat UI**: See Cedar OS components in action in a pre-configured chat interface
+- **Cedar-OS Components**: Cedar-OS Components installed in shadcn style for local changes
+- **Tailwind CSS, Typescript, NextJS**: Patterns you're used to in any NextJS project
+
+### Backend (Mastra)
+
+- **Chat Workflow**: Example of a Mastra workflow – a chained sequence of tasks including LLM calls
+- **Streaming Utils**: Examples of streaming text, status updates, and objects like tool calls
+- **API Routes**: Examples of registering endpoint handlers for interacting with the backend
+
+## API Endpoints (Mastra backend)
+
+### Non-streaming Chat
+
+```bash
+POST /chat/execute-function
+Content-Type: application/json
+
+{
+  "prompt": "Hello, how can you help me?",
+  "temperature": 0.7,
+  "maxTokens": 1000,
+  "systemPrompt": "You are a helpful assistant."
+}
+```
+
+### Streaming Chat
+
+```bash
+POST /chat/execute-function/stream
+Content-Type: application/json
+
+{
+  "prompt": "Tell me a story",
+  "temperature": 0.7
+}
+```
+
+Returns Server-Sent Events with:
+
+- **JSON Objects**: `{ type: 'stage_update', status: 'update_begin', message: 'Generating response...'}`
+- **Text Chunks**: Streamed AI response text
+- **Completion**: `event: done` signal
+
+## Development
+
+### Running the Project
+
+```bash
+# Start both frontend and backend
+npm run dev
+
+# Run frontend only
+npm run dev:next
+
+# Run backend only
+npm run dev:mastra
+```
+
+### Project Structure
+
+```
+├── src/
+│   ├── app/                    # Next.js app router
+│   ├── components/             # React components
+│   │   ├── cedar-os/          # Cedar-OS UI components
+│   │   └── CedarCopilotWrapper.tsx
+│   └── backend/               # Mastra backend
+│       └── src/
+│           ├── mastra/
+│           │   ├── agents/    # AI agents
+│           │   ├── workflows/ # Chat workflows
+│           │   └── apiRegistry.ts
+│           └── utils/
+│               └── streamUtils.ts # SSE utilities
+```
+
+## Customization
+
+### Adding New Workflows
+
+Create new Mastra workflows in `src/backend/src/mastra/workflows/`:
+
+```typescript
+import { createWorkflow, createStep } from '@mastra/core/workflows';
+
+export const customWorkflow = createWorkflow({
+  id: 'customWorkflow',
+  // ... workflow definition
+});
+```
+
+### Extending Chat Features
+
+Modify the chat workflow to add:
+
+- Tool calling capabilities
+- Multi-agent conversations
+- Custom context retrieval
+- Memory management
+
+### UI Customization
+
+Cedar-OS components are fully customizable through:
+
+- Tailwind classes
+- Component props
+- Custom CSS variables
+- Theme configuration
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+- [Cedar-OS Documentation](https://docs.cedarcopilot.com/)
+- [Mastra Documentation](https://mastra.ai/docs)
+- [Next.js Documentation](https://nextjs.org/docs)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT License - see LICENSE file for details.
