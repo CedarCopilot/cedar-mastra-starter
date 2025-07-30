@@ -35,6 +35,7 @@ export type Comment = {
   id: string;
   author: string;
   text: string;
+  timestamp?: number;
 };
 
 export type FeatureStatus = 'done' | 'planned' | 'backlog' | 'in progress';
@@ -52,6 +53,7 @@ export const FeatureNodeDataSchema = z.object({
       id: z.string(),
       author: z.string(),
       text: z.string(),
+      timestamp: z.number().optional(),
     }),
   ),
   status: z.enum(['done', 'planned', 'backlog', 'in progress']),
