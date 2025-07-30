@@ -67,7 +67,13 @@ export const apiRoutes = [
         return createSSEStream(async (controller) => {
           const run = await chatWorkflow.createRunAsync();
           const result = await run.start({
-            inputData: { prompt, temperature, maxTokens, systemPrompt, streamController: controller },
+            inputData: {
+              prompt,
+              temperature,
+              maxTokens,
+              systemPrompt,
+              streamController: controller,
+            },
           });
 
           if (result.status !== 'success') {
