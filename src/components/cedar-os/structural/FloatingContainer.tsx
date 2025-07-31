@@ -2,12 +2,12 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 
 export interface FloatingDimensions {
-  width?: number;
-  height?: number;
-  minWidth?: number;
-  minHeight?: number;
-  maxWidth?: number;
-  maxHeight?: number;
+  width?: number | string;
+  height?: number | string;
+  minWidth?: number | string;
+  minHeight?: number | string;
+  maxWidth?: number | string;
+  maxHeight?: number | string;
 }
 
 export type FloatingPosition = 'bottom-left' | 'bottom-right' | 'bottom-center';
@@ -38,58 +38,25 @@ export const FloatingContainer: React.FC<FloatingContainerProps> = ({
   const {
     width: initialWidth,
     height: initialHeight,
-    minWidth = 300,
-    minHeight = 250,
-    maxWidth,
-    maxHeight,
+    minWidth = '300px',
+    minHeight = '250px',
+    maxWidth = 'max-w-3xl',
+    maxHeight = '80vh',
   } = dimensions;
 
-  // Calculate default dimensions based on viewport and position
-  const getDefaultDimensions = () => {
-    // For bottom-center, use ChatInputContainer defaults
-    if (effectivePosition === 'bottom-center') {
-      return {
-        width:
-          initialWidth ||
-          (typeof window !== 'undefined' ? Math.min(window.innerWidth - 32, 768) : 768), // max-w-3xl equivalent with padding
-        height: initialHeight || 'auto', // Let content determine height
-      };
+  // For resizable panels, we need to track numeric values
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [panelWidth, setPanelWidth] = useState<number | null>(null);
+  const [panelHeight, setPanelHeight] = useState<number | null>(null);
+
+  // Initialize numeric dimensions when container mounts (only for resizable)
+  useEffect(() => {
+    if (resizable && containerRef.current && panelWidth === null) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setPanelWidth(rect.width);
+      setPanelHeight(rect.height);
     }
-
-    return {
-      width: initialWidth || (typeof window !== 'undefined' ? window.innerWidth * 0.3 : 400),
-      height: initialHeight || (typeof window !== 'undefined' ? window.innerHeight * 0.6 : 500),
-    };
-  };
-
-  const defaults = getDefaultDimensions();
-  const [panelWidth, setPanelWidth] = useState(
-    typeof defaults.width === 'number' ? defaults.width : 400,
-  );
-  const [panelHeight, setPanelHeight] = useState(
-    typeof defaults.height === 'number' ? defaults.height : 500,
-  );
-
-  // Calculate max dimensions based on position
-  const getMaxDimensions = () => {
-    if (typeof window === 'undefined') {
-      return { maxWidth: 800, maxHeight: 600 };
-    }
-
-    if (effectivePosition === 'bottom-center') {
-      return {
-        maxWidth: maxWidth || Math.min(window.innerWidth - 32, 768), // max-w-3xl with padding
-        maxHeight: maxHeight || window.innerHeight * 0.8,
-      };
-    }
-
-    return {
-      maxWidth: maxWidth || window.innerWidth * 0.6,
-      maxHeight: maxHeight || window.innerHeight * 0.8,
-    };
-  };
-
-  const { maxWidth: calculatedMaxWidth, maxHeight: calculatedMaxHeight } = getMaxDimensions();
+  }, [resizable, panelWidth]);
 
   // Resize state
   const [isResizing, setIsResizing] = useState<null | 'width' | 'height' | 'both'>(null);
@@ -98,13 +65,27 @@ export const FloatingContainer: React.FC<FloatingContainerProps> = ({
   const dragStartWidth = useRef(0);
   const dragStartHeight = useRef(0);
 
+  // Convert CSS values to pixels for resize constraints
+  const getNumericValue = (value: string | number): number => {
+    if (typeof value === 'number') return value;
+    if (value.endsWith('px')) return parseInt(value);
+    if (value.endsWith('vh')) return (parseInt(value) / 100) * window.innerHeight;
+    if (value.endsWith('vw')) return (parseInt(value) / 100) * window.innerWidth;
+    return 0;
+  };
+
   // Handle resize
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isResizing || !resizable) return;
+      if (!isResizing || !resizable || panelWidth === null || panelHeight === null) return;
 
       let newWidth = panelWidth;
       let newHeight = panelHeight;
+
+      const minWidthPx = getNumericValue(minWidth);
+      const minHeightPx = getNumericValue(minHeight);
+      const maxWidthPx = maxWidth === 'max-w-3xl' ? 768 : getNumericValue(maxWidth);
+      const maxHeightPx = getNumericValue(maxHeight);
 
       if (isResizing === 'width' || isResizing === 'both') {
         const deltaX =
@@ -115,20 +96,14 @@ export const FloatingContainer: React.FC<FloatingContainerProps> = ({
               : 0; // For bottom-center, handle differently or disable width resize
 
         if (effectivePosition !== 'bottom-center') {
-          newWidth = Math.max(
-            minWidth,
-            Math.min(calculatedMaxWidth, dragStartWidth.current + deltaX),
-          );
+          newWidth = Math.max(minWidthPx, Math.min(maxWidthPx, dragStartWidth.current + deltaX));
           setPanelWidth(newWidth);
         }
       }
 
       if (isResizing === 'height' || isResizing === 'both') {
         const deltaY = dragStartY.current - e.clientY;
-        newHeight = Math.max(
-          minHeight,
-          Math.min(calculatedMaxHeight, dragStartHeight.current + deltaY),
-        );
+        newHeight = Math.max(minHeightPx, Math.min(maxHeightPx, dragStartHeight.current + deltaY));
         setPanelHeight(newHeight);
       }
 
@@ -139,8 +114,8 @@ export const FloatingContainer: React.FC<FloatingContainerProps> = ({
       effectivePosition,
       minWidth,
       minHeight,
-      calculatedMaxWidth,
-      calculatedMaxHeight,
+      maxWidth,
+      maxHeight,
       panelWidth,
       panelHeight,
       resizable,
@@ -179,7 +154,7 @@ export const FloatingContainer: React.FC<FloatingContainerProps> = ({
   }, [isResizing, handleMouseMove, handleMouseUp, resizable]);
 
   const startResize = (direction: 'width' | 'height' | 'both', e: React.MouseEvent) => {
-    if (!resizable) return;
+    if (!resizable || panelWidth === null || panelHeight === null) return;
     e.preventDefault();
     setIsResizing(direction);
     dragStartX.current = e.clientX;
@@ -238,40 +213,60 @@ export const FloatingContainer: React.FC<FloatingContainerProps> = ({
 
   if (!isActive) return null;
 
-  const containerStyle =
-    effectivePosition === 'bottom-center'
-      ? {
-          width: panelWidth,
-          maxWidth: calculatedMaxWidth,
-          minWidth,
-          height: defaults.height === 'auto' ? 'auto' : panelHeight,
-        }
-      : {
-          width: panelWidth,
-          height: panelHeight,
-          minWidth,
-          minHeight,
-        };
+  // Build container style based on whether we're resizing or using CSS defaults
+  const containerStyle: React.CSSProperties = {};
+
+  // For bottom-center, always use CSS-based sizing
+  if (effectivePosition === 'bottom-center') {
+    containerStyle.width = initialWidth || '100%';
+    containerStyle.maxWidth =
+      typeof maxWidth === 'string' && maxWidth.startsWith('max-w-') ? undefined : maxWidth;
+    containerStyle.minWidth = minWidth;
+    containerStyle.height = initialHeight || 'auto';
+  } else {
+    // For corner positions, use numeric values when resizing, CSS otherwise
+    if (resizable && panelWidth !== null && panelHeight !== null) {
+      containerStyle.width = panelWidth;
+      containerStyle.height = panelHeight;
+      containerStyle.minWidth = minWidth;
+      containerStyle.minHeight = minHeight;
+    } else {
+      containerStyle.width = initialWidth || '100%';
+      containerStyle.height = initialHeight || 'auto';
+      containerStyle.minWidth = minWidth;
+      containerStyle.minHeight = minHeight;
+      containerStyle.maxWidth =
+        typeof maxWidth === 'string' && maxWidth.startsWith('max-w-') ? undefined : maxWidth;
+      containerStyle.maxHeight = maxHeight;
+    }
+  }
+
+  // Build className string with Tailwind classes
+  const containerClasses = [
+    positionClasses,
+    'z-[9999] !m-0',
+    effectivePosition === 'bottom-center' && 'w-full',
+    typeof maxWidth === 'string' && maxWidth.startsWith('max-w-') && maxWidth,
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <div
-      className={`${positionClasses} z-[9999] !m-0 ${
-        effectivePosition === 'bottom-center' ? 'w-full max-w-3xl' : ''
-      } ${className}`}
-      style={containerStyle}
-    >
+    <div ref={containerRef} className={containerClasses} style={containerStyle}>
       <motion.div
         initial={animationProps.initial}
         animate={animationProps.animate}
         exit={animationProps.exit}
         transition={{ type: 'spring', damping: 20, stiffness: 100 }}
         className="w-full h-full"
+        style={{ willChange: 'transform' }}
       >
         {children}
       </motion.div>
 
       {/* Resize handles - only show for corner positions, not bottom-center */}
-      {resizable && effectivePosition !== 'bottom-center' && (
+      {resizable && effectivePosition !== 'bottom-center' && panelWidth !== null && (
         <>
           {/* Width handle */}
           <div
