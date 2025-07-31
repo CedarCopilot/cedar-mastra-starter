@@ -1,6 +1,6 @@
 # Cedar-Mastra Starter
 
-A comprehensive starter template that combines [Cedar-OS](https://docs.cedarcopilot.com/) AI copilot components with [Mastra](https://mastra.ai/) workflows for building intelligent, streaming-capable applications.
+A comprehensive starter template (product roadmap application using ReactFlow) that combines [Cedar-OS](https://docs.cedarcopilot.com/) AI copilot components with [Mastra](https://mastra.ai/) workflows for building intelligent, streaming-capable applications.
 
 ## Features
 
@@ -19,6 +19,8 @@ npx cedar-os-cli plant-seed
 ```
 
 Then select this template when prompted. This will set up the entire project structure and dependencies automatically.
+
+Walk through the starter repo by global searching for comments starting with [STEP X] to understand how the frontend and backend work and what features are implemented.
 
 For more details, see the [Cedar Getting Started Guide](https://docs.cedarcopilot.com/getting-started/getting-started).
 
@@ -120,57 +122,6 @@ npm run dev:next
 # Run backend only
 npm run dev:mastra
 ```
-
-### Project Structure
-
-```
-├── src/
-│   ├── app/                    # Next.js app router
-│   ├── components/             # React components
-│   │   ├── cedar-os/          # Cedar-OS UI components
-│   │   └── CedarCopilotWrapper.tsx
-│   └── backend/               # Mastra backend
-│       └── src/
-│           ├── mastra/
-│           │   ├── agents/    # AI agents
-│           │   ├── workflows/ # Chat workflows
-│           │   └── apiRegistry.ts
-│           └── utils/
-│               └── streamUtils.ts # SSE utilities
-```
-
-## Customization
-
-### Adding New Workflows
-
-Create new Mastra workflows in `src/backend/src/mastra/workflows/`:
-
-```typescript
-import { createWorkflow, createStep } from '@mastra/core/workflows';
-
-export const customWorkflow = createWorkflow({
-  id: 'customWorkflow',
-  // ... workflow definition
-});
-```
-
-### Extending Chat Features
-
-Modify the chat workflow to add:
-
-- Tool calling capabilities
-- Multi-agent conversations
-- Custom context retrieval
-- Memory management
-
-### UI Customization
-
-Cedar-OS components are fully customizable through:
-
-- Tailwind classes
-- Component props
-- Custom CSS variables
-- Theme configuration
 
 ## Learn More
 
