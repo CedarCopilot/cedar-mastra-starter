@@ -101,11 +101,6 @@ const callAgent = createStep({
 
     const result: ChatOutput = {
       content: response.object?.content || response.text || '',
-      object: response.object || {
-        type: 'message',
-        content: response.text || '',
-        role: 'assistant',
-      },
       usage: response.usage,
     };
 
