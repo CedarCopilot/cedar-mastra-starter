@@ -36,8 +36,9 @@ const fetchContext = createStep({
     context: z.any().optional(),
   }),
   execute: async ({ inputData }) => {
-    console.log('Received input data', inputData);
-    // Grab frontend state context that was passed
+    console.log('Chat workflow received input data', inputData);
+    // [STEP 5] (Backend): If the user adds a node via @mention then sends a message, the agent will receive it here in the user prompt field.
+    // [STEP 6] (Backend): If you call the subscribeInputContext hook on the frontend, the agent will receive that state as context, formatted in the way you specified.
     const frontendContext = inputData.prompt;
 
     // Merge, filter, or modify the frontend context as needed

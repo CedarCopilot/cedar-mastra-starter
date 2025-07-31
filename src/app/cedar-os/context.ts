@@ -5,7 +5,7 @@ import { Box } from 'lucide-react';
 import { FeatureNodeData } from '@/components/react-flow/FeatureNode';
 
 // [STEP 6]: To automatically make any part of your application state available to AI agents as context,
-// We use the subscribeInputContext function. In this example, we subscribe to the selected nodes and specify how we want them to appear in the chat.
+// We use the subscribeInputContext function. In this example, we subscribe to the selected nodes and specify how we want them to appear in the chat as "selected context".
 // We also specify how we want to transform the selected nodes into a format that should be visible to the agent in its context.
 
 export function useRoadmapContext() {

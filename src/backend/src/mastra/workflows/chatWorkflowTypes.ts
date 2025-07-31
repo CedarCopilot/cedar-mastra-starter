@@ -61,6 +61,7 @@ const MessageResponseSchema = z.object({
 });
 
 // Union of all possible responses
+// [STEP 4] (Backend): If the agent returns any of these action schemas (which were registered using the useRegisterState hook on the frontend), we will execute the corresponding state change on the frontend.
 export const ExecuteFunctionResponseSchema = z.union([
   AddNodeActionSchema,
   RemoveNodeActionSchema,
