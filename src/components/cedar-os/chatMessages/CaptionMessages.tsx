@@ -12,9 +12,9 @@ import {
 import Flat3dButton from '@/components/cedar-os/containers/Flat3dButton';
 import Flat3dContainer from '@/components/cedar-os/containers/Flat3dContainer';
 import { ShimmerText } from '@/components/cedar-os/text/ShimmerText';
-import { TypewriterText } from '@/components/cedar-os/text/TypewriterText';
 import KeyboardShortcut from '@/components/cedar-os/ui/KeyboardShortcut';
 import Slider from '@/components/cedar-os/ui/Slider3D';
+import { TypewriterText } from '@/components/cedar-os/text/TypewriterText';
 
 interface CaptionMessagesProps {
   showThinking?: boolean;

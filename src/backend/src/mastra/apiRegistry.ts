@@ -1,5 +1,5 @@
 import { registerApiRoute } from '@mastra/core/server';
-import { ChatInputSchema, chatWorkflow } from './workflows/chatWorkflow';
+import { ChatInputSchema, ChatOutput, chatWorkflow } from './workflows/chatWorkflow';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { createSSEStream } from '../utils/streamUtils';
 
@@ -9,8 +9,9 @@ function toOpenApiSchema(schema: Parameters<typeof zodToJsonSchema>[0]) {
 }
 
 // Register API routes to reach your Mastra server
+// [STEP 2] (Backend): By default for Mastra, the chat will hit this endpoint. The /stream version of it below will be hit if streaming is enabled.
 export const apiRoutes = [
-  registerApiRoute('/chat/execute-function', {
+  registerApiRoute('/chat', {
     method: 'POST',
     openapi: {
       requestBody: {
@@ -32,23 +33,17 @@ export const apiRoutes = [
         });
 
         if (result.status === 'success') {
-          return c.json({ text: result.result.text, usage: result.result.usage });
+          // Simply forward the workflow response to the frontend
+          console.log('Sending response', JSON.stringify(result.result, null, 2));
+          return c.json<ChatOutput>(result.result as ChatOutput);
         }
-
-        return c.json(
-          {
-            status: result.status,
-            steps: result.steps,
-          },
-          500,
-        );
       } catch (error) {
         console.error(error);
         return c.json({ error: error instanceof Error ? error.message : 'Internal error' }, 500);
       }
     },
   }),
-  registerApiRoute('/chat/execute-function/stream', {
+  registerApiRoute('/chat/stream', {
     method: 'POST',
     openapi: {
       requestBody: {
@@ -67,7 +62,13 @@ export const apiRoutes = [
         return createSSEStream(async (controller) => {
           const run = await chatWorkflow.createRunAsync();
           const result = await run.start({
-            inputData: { prompt, temperature, maxTokens, systemPrompt, streamController: controller },
+            inputData: {
+              prompt,
+              temperature,
+              maxTokens,
+              systemPrompt,
+              streamController: controller,
+            },
           });
 
           if (result.status !== 'success') {

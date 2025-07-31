@@ -20,13 +20,13 @@ export default function RootLayout({
 }>) {
   const llmProvider: ProviderConfig = {
     provider: 'mastra' as const,
-    apiKey: 'not-needed-for-local',
     baseURL: process.env.NEXT_PUBLIC_MASTRA_URL || 'http://localhost:4111',
   };
 
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* [STEP 1]: We register the main CedarCopilot wrapper at the root of the app with a Mastra provider. */}
         <CedarCopilot llmProvider={llmProvider}>{children}</CedarCopilot>
       </body>
     </html>

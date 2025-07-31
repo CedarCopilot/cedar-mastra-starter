@@ -19,11 +19,10 @@ export const ChatInput: React.FC<{
   handleFocus?: () => void;
   handleBlur?: () => void;
   isInputFocused?: boolean;
-  onSubmit?: (input: string) => void; //It
   className?: string; // Additional classes for the container
-}> = ({ handleFocus, handleBlur, isInputFocused, onSubmit, className = '' }) => {
+  stream?: boolean; // Whether to use streaming for responses
+}> = ({ handleFocus, handleBlur, isInputFocused, className = '', stream = true }) => {
   const { editor, isEditorEmpty, handleSubmit } = useCedarEditor({
-    onSubmit,
     onFocus: handleFocus,
     onBlur: handleBlur,
   });
@@ -196,13 +195,13 @@ export const ChatInput: React.FC<{
             layoutId: 'send-chat',
             animate: {
               opacity: isEditorEmpty ? 0.5 : 1,
-              backgroundColor: isEditorEmpty ? '#ffffff' : '#93c5fd',
+              backgroundColor: isEditorEmpty ? 'transparent' : '#93c5fd',
             },
             transition: { type: 'spring', stiffness: 300, damping: 20 },
           }}
-          onClick={handleSubmit}
+          onClick={() => handleSubmit({ stream })}
           color={isEditorEmpty ? undefined : '#93c5fd'}
-          className="flex items-center flex-shrink-0 ml-auto -mt-0.5 rounded-full"
+          className="flex items-center flex-shrink-0 ml-auto -mt-0.5 rounded-full bg-white dark:bg-gray-800"
           childClassName="p-1.5"
         >
           <motion.div

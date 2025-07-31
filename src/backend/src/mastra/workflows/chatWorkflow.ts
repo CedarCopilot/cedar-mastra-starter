@@ -5,8 +5,9 @@
 
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { chatAgent } from '../agents/chatAgent';
-import { handleTextStream, streamJSONEvent } from '../../utils/streamUtils';
+import { productRoadmapAgent } from '../agents/productRoadmapAgent';
+import { streamJSONEvent } from '../../utils/streamUtils';
+import { ExecuteFunctionResponseSchema } from './chatWorkflowTypes';
 
 export const ChatInputSchema = z.object({
   prompt: z.string(),
@@ -14,7 +15,17 @@ export const ChatInputSchema = z.object({
   maxTokens: z.number().optional(),
   systemPrompt: z.string().optional(),
   streamController: z.any().optional(),
+  // For structured output
+  output: z.any().optional(),
 });
+
+export const ChatOutputSchema = z.object({
+  content: z.string(),
+  object: z.unknown().optional(),
+  usage: z.any().optional(),
+});
+
+export type ChatOutput = z.infer<typeof ChatOutputSchema>;
 
 // 1. fetchContext – passthrough (placeholder)
 const fetchContext = createStep({
@@ -25,8 +36,15 @@ const fetchContext = createStep({
     context: z.any().optional(),
   }),
   execute: async ({ inputData }) => {
-    // Simply forward input for now
-    const result = { ...inputData, context: null };
+    console.log('Chat workflow received input data', inputData);
+    // [STEP 5] (Backend): If the user adds a node via @mention then sends a message, the agent will receive it here in the user prompt field.
+    // [STEP 6] (Backend): If you call the subscribeInputContext hook on the frontend, the agent will receive that state as context, formatted in the way you specified.
+    const frontendContext = inputData.prompt;
+
+    // Merge, filter, or modify the frontend context as needed
+    const unifiedContext = frontendContext;
+
+    const result = { ...inputData, prompt: unifiedContext };
 
     return result;
   },
@@ -37,26 +55,20 @@ const buildAgentContext = createStep({
   id: 'buildAgentContext',
   description: 'Combine fetched information and build LLM messages',
   inputSchema: fetchContext.outputSchema,
-  outputSchema: z.object({
+  outputSchema: ChatInputSchema.extend({
     messages: z.array(
       z.object({
         role: z.enum(['system', 'user', 'assistant']),
         content: z.string(),
       }),
     ),
-    temperature: z.number().optional(),
-    maxTokens: z.number().optional(),
-    streamController: z.any().optional(),
   }),
   execute: async ({ inputData }) => {
-    const { prompt, temperature, maxTokens, systemPrompt, streamController } = inputData;
+    const { prompt, temperature, maxTokens, streamController } = inputData;
 
-    const messages = [
-      ...(systemPrompt ? ([{ role: 'system' as const, content: systemPrompt }] as const) : []),
-      { role: 'user' as const, content: prompt },
-    ];
+    const messages = [{ role: 'user' as const, content: prompt }];
 
-    const result = { messages, temperature, maxTokens, streamController };
+    const result = { ...inputData, messages, temperature, maxTokens, streamController };
 
     return result;
   },
@@ -67,13 +79,9 @@ const callAgent = createStep({
   id: 'callAgent',
   description: 'Invoke the chat agent with options',
   inputSchema: buildAgentContext.outputSchema,
-  outputSchema: z.object({
-    text: z.string(),
-    usage: z.any().optional(),
-    streamController: z.any().optional(),
-  }),
+  outputSchema: ChatOutputSchema,
   execute: async ({ inputData }) => {
-    const { messages, temperature, maxTokens, streamController } = inputData;
+    const { messages, temperature, maxTokens, streamController, systemPrompt } = inputData;
 
     if (streamController) {
       streamJSONEvent(streamController, {
@@ -81,45 +89,40 @@ const callAgent = createStep({
         status: 'update_begin',
         message: 'Generating response...',
       });
+    }
 
-      const response = await chatAgent.stream(messages, {
-        temperature,
-        maxTokens,
-      });
+    const response = await productRoadmapAgent.generate(messages, {
+      // If system prompt is provided, overwrite the default system prompt for this agent
+      ...(systemPrompt ? ({ instructions: systemPrompt } as const) : {}),
+      temperature,
+      maxTokens,
+      experimental_output: ExecuteFunctionResponseSchema,
+    });
 
-      const text = await handleTextStream(response, streamController);
+    const result: ChatOutput = {
+      content: response.object?.content || response.text || '',
+      object: response.object || {
+        type: 'message',
+        content: response.text || '',
+        role: 'assistant',
+      },
+      usage: response.usage,
+    };
 
+    console.log('Chat workflow result', result);
+    if (streamController) {
+      streamJSONEvent(streamController, result);
+    }
+
+    if (streamController) {
       streamJSONEvent(streamController, {
         type: 'stage_update',
         status: 'update_complete',
         message: 'Response generated',
       });
-
-      return { text, usage: response.usage, streamController };
-    } else {
-      const response = await chatAgent.generate(messages, {
-        temperature,
-        maxTokens,
-      });
-
-      return { text: response.text, usage: response.usage, streamController };
     }
-  },
-});
 
-// 4. streamResponse – finalize streaming response
-const streamResponse = createStep({
-  id: 'streamResponse',
-  description: 'Finalize the streaming response',
-  inputSchema: callAgent.outputSchema,
-  outputSchema: z.object({
-    text: z.string(),
-    usage: z.any().optional(),
-  }),
-  execute: async ({ inputData }) => {
-    const { text, usage } = inputData;
-
-    return { text, usage };
+    return result;
   },
 });
 
@@ -128,13 +131,9 @@ export const chatWorkflow = createWorkflow({
   description:
     'Chat workflow that replicates the old /chat/execute-function endpoint behaviour with optional streaming',
   inputSchema: ChatInputSchema,
-  outputSchema: z.object({
-    text: z.string(),
-    usage: z.any().optional(),
-  }),
+  outputSchema: ChatOutputSchema,
 })
   .then(fetchContext)
   .then(buildAgentContext)
   .then(callAgent)
-  .then(streamResponse)
   .commit();
