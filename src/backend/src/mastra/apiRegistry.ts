@@ -11,7 +11,7 @@ function toOpenApiSchema(schema: Parameters<typeof zodToJsonSchema>[0]) {
 // Register API routes to reach your Mastra server
 // [STEP 2] (Backend): By default for Mastra, the chat will hit this endpoint. The /stream version of it below will be hit if streaming is enabled.
 export const apiRoutes = [
-  registerApiRoute('/chat/execute-function', {
+  registerApiRoute('/chat', {
     method: 'POST',
     openapi: {
       requestBody: {
@@ -43,7 +43,7 @@ export const apiRoutes = [
       }
     },
   }),
-  registerApiRoute('/chat/execute-function/stream', {
+  registerApiRoute('/chat/stream', {
     method: 'POST',
     openapi: {
       requestBody: {

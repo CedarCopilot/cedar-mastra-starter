@@ -21,6 +21,7 @@ interface FloatingCedarChatProps {
     maxHeight?: number;
   };
   resizable?: boolean;
+  stream?: boolean; // Whether to use streaming for responses
 }
 
 export const FloatingCedarChat: React.FC<FloatingCedarChatProps> = ({
@@ -33,6 +34,7 @@ export const FloatingCedarChat: React.FC<FloatingCedarChatProps> = ({
     minHeight: 400,
   },
   resizable = true,
+  stream = true,
 }) => {
   // Get showChat state and setShowChat from store
   const showChat = useCedarStore((state) => state.showChat);
@@ -83,7 +85,12 @@ export const FloatingCedarChat: React.FC<FloatingCedarChatProps> = ({
 
           {/* Chat input - fixed at bottom */}
           <div className="flex-shrink-0 p-3">
-            <ChatInput handleFocus={() => {}} handleBlur={() => {}} isInputFocused={false} />
+            <ChatInput
+              handleFocus={() => {}}
+              handleBlur={() => {}}
+              isInputFocused={false}
+              stream={stream}
+            />
           </div>
         </Container3D>
       </FloatingContainer>

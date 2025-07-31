@@ -6,7 +6,7 @@
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
 import { productRoadmapAgent } from '../agents/productRoadmapAgent';
-import { handleTextStream, streamJSONEvent } from '../../utils/streamUtils';
+import { streamJSONEvent } from '../../utils/streamUtils';
 import { ExecuteFunctionResponseSchema } from './chatWorkflowTypes';
 
 export const ChatInputSchema = z.object({
@@ -89,64 +89,40 @@ const callAgent = createStep({
         status: 'update_begin',
         message: 'Generating response...',
       });
+    }
 
-      const response = await productRoadmapAgent.stream(messages, {
-        temperature,
-        maxTokens,
-        experimental_output: ExecuteFunctionResponseSchema,
-      });
+    const response = await productRoadmapAgent.generate(messages, {
+      // If system prompt is provided, overwrite the default system prompt for this agent
+      ...(systemPrompt ? ({ instructions: systemPrompt } as const) : {}),
+      temperature,
+      maxTokens,
+      experimental_output: ExecuteFunctionResponseSchema,
+    });
 
-      const text = await handleTextStream(response, streamController);
+    const result: ChatOutput = {
+      content: response.object?.content || response.text || '',
+      object: response.object || {
+        type: 'message',
+        content: response.text || '',
+        role: 'assistant',
+      },
+      usage: response.usage,
+    };
 
+    console.log('Chat workflow result', result);
+    if (streamController) {
+      streamJSONEvent(streamController, result);
+    }
+
+    if (streamController) {
       streamJSONEvent(streamController, {
         type: 'stage_update',
         status: 'update_complete',
         message: 'Response generated',
       });
-
-      return {
-        content: text || '',
-        object: {
-          type: 'message',
-          content: text,
-          role: 'assistant',
-        },
-        usage: response.usage,
-        streamController,
-      };
-    } else {
-      const response = await productRoadmapAgent.generate(messages, {
-        // If system prompt is provided, overwrite the default system prompt for this agent
-        ...(systemPrompt ? ({ instructions: systemPrompt } as const) : {}),
-        temperature,
-        maxTokens,
-        experimental_output: ExecuteFunctionResponseSchema,
-      });
-
-      return {
-        content: response.object?.content || response.text || '',
-        object: response.object || {
-          type: 'message',
-          content: response.text || '',
-          role: 'assistant',
-        },
-        usage: response.usage,
-        streamController,
-      };
     }
-  },
-});
 
-// 4. streamResponse – finalize streaming response
-const streamResponse = createStep({
-  id: 'streamResponse',
-  description: 'Finalize the streaming response',
-  inputSchema: callAgent.outputSchema,
-  outputSchema: ChatOutputSchema,
-  execute: async ({ inputData }) => {
-    const { content, object, usage } = inputData;
-
-    return { content, object, usage };
+    return result;
   },
 });
 
@@ -160,5 +136,4 @@ export const chatWorkflow = createWorkflow({
   .then(fetchContext)
   .then(buildAgentContext)
   .then(callAgent)
-  .then(streamResponse)
   .commit();

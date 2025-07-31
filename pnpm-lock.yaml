@@ -18,8 +18,8 @@ importers:
         specifier: ^12.8.2
         version: 12.8.2(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       cedar-os:
-        specifier: ^0.0.9
-        version: 0.0.9(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(openapi-types@12.1.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(use-sync-external-store@1.5.0(react@19.1.0))(zod@3.25.76)
+        specifier: ^0.0.10
+        version: 0.0.10(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(openapi-types@12.1.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(use-sync-external-store@1.5.0(react@19.1.0))(zod@3.25.76)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -2573,8 +2573,8 @@ packages:
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
 
-  cedar-os@0.0.9:
-    resolution: {integrity: sha512-Am0GMcXTxPkmJdL+0GwlM+vk2FxAzMmWoUtHEhJUx1dYbijv0W9FFQozpzOjUs7c6bHeza9HUO+QGXFTckLEiQ==}
+  cedar-os@0.0.10:
+    resolution: {integrity: sha512-zA+lgNnZJLl5OrppaxBGSJw0ocuf9in0b9RzXVXDzEL+q1Ki6aHP/58yiEoK/U6Bdv4QgVx6/TxUKOIfyiZHAA==}
     peerDependencies:
       '@types/react': '*'
       '@types/react-dom': '*'
@@ -8146,7 +8146,7 @@ snapshots:
 
   ccount@2.0.1: {}
 
-  cedar-os@0.0.9(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(openapi-types@12.1.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(use-sync-external-store@1.5.0(react@19.1.0))(zod@3.25.76):
+  cedar-os@0.0.10(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(openapi-types@12.1.3)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(use-sync-external-store@1.5.0(react@19.1.0))(zod@3.25.76):
     dependencies:
       '@ai-sdk/xai': 1.2.18(zod@3.25.76)
       '@floating-ui/dom': 1.7.2

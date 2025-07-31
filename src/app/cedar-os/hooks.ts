@@ -18,7 +18,7 @@ export function useCedarRoadmap(
 
   useRoadmapMentions(nodes);
 
-  const { selectedNodes, setSelectedNodes } = useRoadmapContext();
+  const { selectedNodes, setSelectedNodes } = useRoadmapContext(nodes);
 
   return {
     selectedNodes,
