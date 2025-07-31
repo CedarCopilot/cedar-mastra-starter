@@ -5,8 +5,9 @@
 
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { chatAgent } from '../agents/chatAgent';
+import { productRoadmapAgent } from '../agents/productRoadmapAgent';
 import { handleTextStream, streamJSONEvent } from '../../utils/streamUtils';
+import { ExecuteFunctionResponseSchema } from './chatWorkflowTypes';
 
 export const ChatInputSchema = z.object({
   prompt: z.string(),
@@ -14,7 +15,17 @@ export const ChatInputSchema = z.object({
   maxTokens: z.number().optional(),
   systemPrompt: z.string().optional(),
   streamController: z.any().optional(),
+  // For structured output
+  output: z.any().optional(),
 });
+
+export const ChatOutputSchema = z.object({
+  content: z.string(),
+  object: z.unknown().optional(),
+  usage: z.any().optional(),
+});
+
+export type ChatOutput = z.infer<typeof ChatOutputSchema>;
 
 // 1. fetchContext – passthrough (placeholder)
 const fetchContext = createStep({
@@ -25,8 +36,14 @@ const fetchContext = createStep({
     context: z.any().optional(),
   }),
   execute: async ({ inputData }) => {
-    // Simply forward input for now
-    const result = { ...inputData, context: null };
+    console.log('Received input data', inputData);
+    // Grab frontend state context that was passed
+    const frontendContext = inputData.prompt;
+
+    // Merge, filter, or modify the frontend context as needed
+    const unifiedContext = frontendContext;
+
+    const result = { ...inputData, prompt: unifiedContext };
 
     return result;
   },
@@ -37,26 +54,20 @@ const buildAgentContext = createStep({
   id: 'buildAgentContext',
   description: 'Combine fetched information and build LLM messages',
   inputSchema: fetchContext.outputSchema,
-  outputSchema: z.object({
+  outputSchema: ChatInputSchema.extend({
     messages: z.array(
       z.object({
         role: z.enum(['system', 'user', 'assistant']),
         content: z.string(),
       }),
     ),
-    temperature: z.number().optional(),
-    maxTokens: z.number().optional(),
-    streamController: z.any().optional(),
   }),
   execute: async ({ inputData }) => {
-    const { prompt, temperature, maxTokens, systemPrompt, streamController } = inputData;
+    const { prompt, temperature, maxTokens, streamController } = inputData;
 
-    const messages = [
-      ...(systemPrompt ? ([{ role: 'system' as const, content: systemPrompt }] as const) : []),
-      { role: 'user' as const, content: prompt },
-    ];
+    const messages = [{ role: 'user' as const, content: prompt }];
 
-    const result = { messages, temperature, maxTokens, streamController };
+    const result = { ...inputData, messages, temperature, maxTokens, streamController };
 
     return result;
   },
@@ -67,13 +78,9 @@ const callAgent = createStep({
   id: 'callAgent',
   description: 'Invoke the chat agent with options',
   inputSchema: buildAgentContext.outputSchema,
-  outputSchema: z.object({
-    text: z.string(),
-    usage: z.any().optional(),
-    streamController: z.any().optional(),
-  }),
+  outputSchema: ChatOutputSchema,
   execute: async ({ inputData }) => {
-    const { messages, temperature, maxTokens, streamController } = inputData;
+    const { messages, temperature, maxTokens, streamController, systemPrompt } = inputData;
 
     if (streamController) {
       streamJSONEvent(streamController, {
@@ -82,9 +89,10 @@ const callAgent = createStep({
         message: 'Generating response...',
       });
 
-      const response = await chatAgent.stream(messages, {
+      const response = await productRoadmapAgent.stream(messages, {
         temperature,
         maxTokens,
+        experimental_output: ExecuteFunctionResponseSchema,
       });
 
       const text = await handleTextStream(response, streamController);
@@ -95,14 +103,35 @@ const callAgent = createStep({
         message: 'Response generated',
       });
 
-      return { text, usage: response.usage, streamController };
+      return {
+        content: text || '',
+        object: {
+          type: 'message',
+          content: text,
+          role: 'assistant',
+        },
+        usage: response.usage,
+        streamController,
+      };
     } else {
-      const response = await chatAgent.generate(messages, {
+      const response = await productRoadmapAgent.generate(messages, {
+        // If system prompt is provided, overwrite the default system prompt for this agent
+        ...(systemPrompt ? ({ instructions: systemPrompt } as const) : {}),
         temperature,
         maxTokens,
+        experimental_output: ExecuteFunctionResponseSchema,
       });
 
-      return { text: response.text, usage: response.usage, streamController };
+      return {
+        content: response.object?.content || response.text || '',
+        object: response.object || {
+          type: 'message',
+          content: response.text || '',
+          role: 'assistant',
+        },
+        usage: response.usage,
+        streamController,
+      };
     }
   },
 });
@@ -112,14 +141,11 @@ const streamResponse = createStep({
   id: 'streamResponse',
   description: 'Finalize the streaming response',
   inputSchema: callAgent.outputSchema,
-  outputSchema: z.object({
-    text: z.string(),
-    usage: z.any().optional(),
-  }),
+  outputSchema: ChatOutputSchema,
   execute: async ({ inputData }) => {
-    const { text, usage } = inputData;
+    const { content, object, usage } = inputData;
 
-    return { text, usage };
+    return { content, object, usage };
   },
 });
 
@@ -128,10 +154,7 @@ export const chatWorkflow = createWorkflow({
   description:
     'Chat workflow that replicates the old /chat/execute-function endpoint behaviour with optional streaming',
   inputSchema: ChatInputSchema,
-  outputSchema: z.object({
-    text: z.string(),
-    usage: z.any().optional(),
-  }),
+  outputSchema: ChatOutputSchema,
 })
   .then(fetchContext)
   .then(buildAgentContext)

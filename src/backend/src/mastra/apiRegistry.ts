@@ -1,5 +1,5 @@
 import { registerApiRoute } from '@mastra/core/server';
-import { ChatInputSchema, chatWorkflow } from './workflows/chatWorkflow';
+import { ChatInputSchema, ChatOutput, chatWorkflow } from './workflows/chatWorkflow';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { createSSEStream } from '../utils/streamUtils';
 
@@ -32,16 +32,10 @@ export const apiRoutes = [
         });
 
         if (result.status === 'success') {
-          return c.json({ text: result.result.text, usage: result.result.usage });
+          // Simply forward the workflow response to the frontend
+          console.log('Sending response', JSON.stringify(result.result, null, 2));
+          return c.json<ChatOutput>(result.result as ChatOutput);
         }
-
-        return c.json(
-          {
-            status: result.status,
-            steps: result.steps,
-          },
-          500,
-        );
       } catch (error) {
         console.error(error);
         return c.json({ error: error instanceof Error ? error.message : 'Internal error' }, 500);
