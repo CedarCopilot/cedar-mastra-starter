@@ -7,7 +7,7 @@ import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
 import { productRoadmapAgent } from '../agents/productRoadmapAgent';
 import { streamJSONEvent } from '../../utils/streamUtils';
-import { ExecuteFunctionResponseSchema } from './chatWorkflowTypes';
+import { ExecuteFunctionResponseSchema, ActionResponseSchema } from './chatWorkflowTypes';
 
 export const ChatInputSchema = z.object({
   prompt: z.string(),
@@ -21,7 +21,7 @@ export const ChatInputSchema = z.object({
 
 export const ChatOutputSchema = z.object({
   content: z.string(),
-  object: z.unknown().optional(),
+  object: ActionResponseSchema.optional(),
   usage: z.any().optional(),
 });
 
@@ -99,8 +99,14 @@ const callAgent = createStep({
       experimental_output: ExecuteFunctionResponseSchema,
     });
 
+    // `response.object` is guaranteed to match ExecuteFunctionResponseSchema
+    const { content, action } = response.object ?? {
+      content: response.text,
+    };
+
     const result: ChatOutput = {
-      content: response.object?.content || response.text || '',
+      content,
+      object: action,
       usage: response.usage,
     };
 

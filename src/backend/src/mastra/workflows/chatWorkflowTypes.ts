@@ -35,7 +35,6 @@ const AddNodeActionSchema = z.object({
   stateKey: z.literal('nodes'),
   setterKey: z.literal('addNode'),
   args: z.array(NodeSchema),
-  content: z.string(),
 });
 
 const RemoveNodeActionSchema = z.object({
@@ -43,7 +42,6 @@ const RemoveNodeActionSchema = z.object({
   stateKey: z.literal('nodes'),
   setterKey: z.literal('removeNode'),
   args: z.array(z.string()), // Just the node ID
-  content: z.string(),
 });
 
 const ChangeNodeActionSchema = z.object({
@@ -51,20 +49,18 @@ const ChangeNodeActionSchema = z.object({
   stateKey: z.literal('nodes'),
   setterKey: z.literal('changeNode'),
   args: z.array(NodeSchema),
-  content: z.string(),
 });
 
-const MessageResponseSchema = z.object({
-  type: z.literal('message'),
-  content: z.string(),
-  role: z.literal('assistant').default('assistant'),
-});
-
-// Union of all possible responses
-// [STEP 4] (Backend): If the agent returns any of these action schemas (which were registered using the useRegisterState hook on the frontend), we will execute the corresponding state change on the frontend.
-export const ExecuteFunctionResponseSchema = z.union([
+// Union of all action responses
+export const ActionResponseSchema = z.union([
   AddNodeActionSchema,
   RemoveNodeActionSchema,
   ChangeNodeActionSchema,
-  MessageResponseSchema,
 ]);
+
+// Final agent response shape – either a plain chat message (content only)
+// or a chat message accompanied by an action.
+export const ExecuteFunctionResponseSchema = z.object({
+  content: z.string(),
+  action: ActionResponseSchema.optional(),
+});
