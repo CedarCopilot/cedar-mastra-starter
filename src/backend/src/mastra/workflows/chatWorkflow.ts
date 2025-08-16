@@ -9,11 +9,148 @@ import { productRoadmapAgent } from '../agents/productRoadmapAgent';
 import { streamJSONEvent } from '../../utils/streamUtils';
 import { ExecuteFunctionResponseSchema, ActionResponseSchema } from './chatWorkflowTypes';
 
+// ---------------------------------------------
+// Mastra nested streaming – emit placeholder events
+// ---------------------------------------------
+
+/**
+ * All possible event types that can be emitted by Mastra primitives when using the
+ * new nested streaming support (see https://mastra.ai/blog/nested-streaming-support).
+ */
+export type MastraEventType =
+  | 'start'
+  | 'step-start'
+  | 'tool-call'
+  | 'tool-result'
+  | 'step-finish'
+  | 'tool-output'
+  | 'step-result'
+  | 'step-output'
+  | 'finish';
+
+// Helper array so we can iterate easily when emitting placeholder events.
+const mastraEventTypes: MastraEventType[] = [
+  'start',
+  'step-start',
+  'tool-call',
+  'tool-result',
+  'step-finish',
+  'tool-output',
+  'step-result',
+  'step-output',
+  'finish',
+];
+
+// Pre-defined sample event objects that follow the shapes shown in the
+// nested-streaming blog post. These are purely illustrative and use mock IDs.
+const sampleMastraEvents: Record<MastraEventType, Record<string, unknown>> = {
+  start: {
+    type: 'start',
+    from: 'AGENT',
+    payload: {},
+  },
+  'step-start': {
+    type: 'step-start',
+    from: 'AGENT',
+    payload: {
+      messageId: 'msg_123',
+      request: { role: 'user', content: 'Hello, world!' },
+      warnings: [],
+    },
+  },
+  'tool-call': {
+    type: 'tool-call',
+    from: 'AGENT',
+    payload: {
+      toolCallId: 'tc_456',
+      args: { foo: 'bar' },
+      toolName: 'sampleTool',
+    },
+  },
+  'tool-result': {
+    type: 'tool-result',
+    from: 'AGENT',
+    payload: {
+      toolCallId: 'tc_456',
+      toolName: 'sampleTool',
+      result: { success: true },
+    },
+  },
+  'step-finish': {
+    type: 'step-finish',
+    from: 'AGENT',
+    payload: {
+      reason: 'completed',
+      usage: {
+        promptTokens: 10,
+        completionTokens: 20,
+        totalTokens: 30,
+      },
+      response: { text: 'Done!' },
+      messageId: 'msg_123',
+      providerMetadata: {
+        openai: {
+          reasoningTokens: 5,
+          acceptedPredictionTokens: 10,
+          rejectedPredictionTokens: 0,
+          cachedPromptTokens: 0,
+        },
+      },
+    },
+  },
+  'tool-output': {
+    type: 'tool-output',
+    from: 'USER',
+    payload: {
+      output: { text: 'Nested output from agent' },
+      toolCallId: 'tc_456',
+      toolName: 'sampleTool',
+    },
+  },
+  'step-result': {
+    type: 'step-result',
+    from: 'WORKFLOW',
+    payload: {
+      stepName: 'exampleStep',
+      result: { data: 'example' },
+      stepCallId: 'sc_789',
+      status: 'success',
+      endedAt: Date.now(),
+    },
+  },
+  'step-output': {
+    type: 'step-output',
+    from: 'USER',
+    payload: {
+      output: { text: 'Nested output from step' },
+      toolCallId: 'tc_456',
+      toolName: 'sampleTool',
+    },
+  },
+  finish: {
+    type: 'finish',
+    from: 'WORKFLOW',
+    payload: {
+      totalUsage: {
+        promptTokens: 15,
+        completionTokens: 35,
+        totalTokens: 50,
+      },
+    },
+  },
+};
+
+// The emitMastraEvents step will be declared after buildAgentContext to ensure
+// buildAgentContext is defined before we reference it.
+
 export const ChatInputSchema = z.object({
   prompt: z.string(),
   temperature: z.number().optional(),
   maxTokens: z.number().optional(),
   systemPrompt: z.string().optional(),
+  // Memory linkage (optional)
+  resourceId: z.string().optional(),
+  threadId: z.string().optional(),
   streamController: z.any().optional(),
   // For structured output
   output: z.any().optional(),
@@ -64,13 +201,53 @@ const buildAgentContext = createStep({
     ),
   }),
   execute: async ({ inputData }) => {
-    const { prompt, temperature, maxTokens, streamController } = inputData;
+    const { prompt, temperature, maxTokens, streamController, resourceId, threadId } = inputData;
 
     const messages = [{ role: 'user' as const, content: prompt }];
 
-    const result = { ...inputData, messages, temperature, maxTokens, streamController };
+    const result = {
+      ...inputData,
+      messages,
+      temperature,
+      maxTokens,
+      streamController,
+      resourceId,
+      threadId,
+    };
 
     return result;
+  },
+});
+
+// 2.5 emitMastraEvents – emit a placeholder event for every new Mastra event type
+const emitMastraEvents = createStep({
+  id: 'emitMastraEvents',
+  description: 'Emit placeholder JSON events for every Mastra nested streaming event type',
+  inputSchema: buildAgentContext.outputSchema,
+  outputSchema: buildAgentContext.outputSchema,
+  execute: async ({ inputData }) => {
+    const { streamController } = inputData;
+
+    if (streamController) {
+      for (const eventType of mastraEventTypes) {
+        const sample = sampleMastraEvents[eventType];
+        streamJSONEvent(streamController, sample);
+      }
+
+      streamJSONEvent(streamController, {
+        type: 'alert',
+        level: 'info',
+        text: 'Mastra events emitted',
+      });
+      streamJSONEvent(streamController, {
+        type: 'unregistered_event',
+        level: 'info',
+        text: 'Mastra events emitted',
+      });
+    }
+
+    // Pass data through untouched so subsequent steps receive the original input
+    return inputData;
   },
 });
 
@@ -81,13 +258,21 @@ const callAgent = createStep({
   inputSchema: buildAgentContext.outputSchema,
   outputSchema: ChatOutputSchema,
   execute: async ({ inputData }) => {
-    const { messages, temperature, maxTokens, streamController, systemPrompt } = inputData;
+    const {
+      messages,
+      temperature,
+      maxTokens,
+      streamController,
+      systemPrompt,
+      resourceId,
+      threadId,
+    } = inputData;
 
     if (streamController) {
       streamJSONEvent(streamController, {
-        type: 'stage_update',
-        status: 'update_begin',
-        message: 'Generating response...',
+        type: 'progress_update',
+        status: 'in_progress',
+        text: 'Generating response...',
       });
     }
 
@@ -97,6 +282,7 @@ const callAgent = createStep({
       temperature,
       maxTokens,
       experimental_output: ExecuteFunctionResponseSchema,
+      ...(resourceId && threadId && { memory: { resource: resourceId, thread: threadId } }),
     });
 
     // `response.object` is guaranteed to match ExecuteFunctionResponseSchema
@@ -117,9 +303,9 @@ const callAgent = createStep({
 
     if (streamController) {
       streamJSONEvent(streamController, {
-        type: 'stage_update',
-        status: 'update_complete',
-        message: 'Response generated',
+        type: 'progress_update',
+        status: 'complete',
+        text: 'Response generated',
       });
     }
 
@@ -136,5 +322,6 @@ export const chatWorkflow = createWorkflow({
 })
   .then(fetchContext)
   .then(buildAgentContext)
+  .then(emitMastraEvents)
   .then(callAgent)
   .commit();

@@ -1,5 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
+import { Memory } from '@mastra/memory';
+import { storage } from '../storage';
 
 export const productRoadmapAgent = new Agent({
   name: 'Product Roadmap Agent',
@@ -72,19 +74,26 @@ For removeNode, args should be: ["nodeId"]
 For changeNode, args should be: [{ id: "nodeId", data: { ...updated fields } }]
 </action_handling>
 
-<message_handling>
-If the user is just asking a question or making a comment, return:
+<return_format>
+You should always return a JSON object with the following structure:
 {
-  "type": "message",
   "content": "Your response",
-  "role": "assistant"
+  "action": { ... } // schema from above (optional, omit if not modifying the roadmap)
 }
-</message_handling>
+</return_format>
+
 
 <decision_logic>
-- If the user is asking to modify the roadmap, return an action.
+- If the user is asking to modify the roadmap, ALWAYS return an action.
 - If the user is asking a question or making a comment, return a message.
+- If the user is just asking a question or making a comment, return only the content and omit the action, like this:
+{
+  "content": "Your response"
+}
 </decision_logic>
   `,
   model: openai('gpt-4o-mini'),
+  memory: new Memory({
+    storage,
+  }),
 });
