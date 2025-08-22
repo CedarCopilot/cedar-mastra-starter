@@ -6,8 +6,7 @@
 import { createWorkflow, createStep } from '@mastra/core/workflows';
 import { z } from 'zod';
 import { productRoadmapAgent } from '../agents/productRoadmapAgent';
-import { streamJSONEvent } from '../../utils/streamUtils';
-import { ExecuteFunctionResponseSchema, ActionResponseSchema } from './chatWorkflowTypes';
+import { streamJSONEvent, handleTextStream } from '../../utils/streamUtils';
 
 // ---------------------------------------------
 // Mastra nested streaming – emit placeholder events
@@ -158,7 +157,6 @@ export const ChatInputSchema = z.object({
 
 export const ChatOutputSchema = z.object({
   content: z.string(),
-  object: ActionResponseSchema.optional(),
   usage: z.any().optional(),
 });
 
@@ -254,7 +252,7 @@ const emitMastraEvents = createStep({
 // 3. callAgent – invoke chatAgent
 const callAgent = createStep({
   id: 'callAgent',
-  description: 'Invoke the chat agent with options',
+  description: 'Invoke the chat agent with streaming and return final text',
   inputSchema: buildAgentContext.outputSchema,
   outputSchema: ChatOutputSchema,
   execute: async ({ inputData }) => {
@@ -276,40 +274,28 @@ const callAgent = createStep({
       });
     }
 
-    const response = await productRoadmapAgent.generate(messages, {
-      // If system prompt is provided, overwrite the default system prompt for this agent
+    const streamResult = await productRoadmapAgent.stream(messages, {
       ...(systemPrompt ? ({ instructions: systemPrompt } as const) : {}),
       temperature,
       maxTokens,
-      experimental_output: ExecuteFunctionResponseSchema,
       ...(resourceId && threadId && { memory: { resource: resourceId, thread: threadId } }),
     });
 
-    // `response.object` is guaranteed to match ExecuteFunctionResponseSchema
-    const { content, action } = response.object ?? {
-      content: response.text,
-    };
-
-    const result: ChatOutput = {
-      content,
-      object: action,
-      usage: response.usage,
-    };
-
-    console.log('Chat workflow result', result);
+    let finalText = '';
     if (streamController) {
-      streamJSONEvent(streamController, result);
-    }
-
-    if (streamController) {
+      finalText = await handleTextStream(streamResult, streamController);
       streamJSONEvent(streamController, {
         type: 'progress_update',
         status: 'complete',
         text: 'Response generated',
       });
+    } else {
+      for await (const chunk of streamResult.textStream) {
+        finalText += chunk as string;
+      }
     }
 
-    return result;
+    return { content: finalText };
   },
 });
 

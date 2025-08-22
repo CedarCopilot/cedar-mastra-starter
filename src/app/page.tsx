@@ -6,9 +6,9 @@ import 'reactflow/dist/style.css';
 
 import { RoadmapCanvas } from '@/components/roadmap/RoadmapCanvas';
 import { ChatModeSelector } from '@/components/roadmap/ChatModeSelector';
-import { FloatingCedarChat } from '@/components/cedar-os/chatComponents/FloatingCedarChat';
-import { SidePanelCedarChat } from '@/components/cedar-os/chatComponents/SidePanelCedarChat';
-import { CedarCaptionChat } from '@/components/cedar-os/chatComponents/CedarCaptionChat';
+import { FloatingCedarChat } from '@/app/cedar-os/components/chatComponents/FloatingCedarChat';
+import { SidePanelCedarChat } from '@/app/cedar-os/components/chatComponents/SidePanelCedarChat';
+import { CedarCaptionChat } from '@/app/cedar-os/components/chatComponents/CedarCaptionChat';
 
 type ChatMode = 'floating' | 'sidepanel' | 'caption';
 

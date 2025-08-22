@@ -10,19 +10,26 @@ import ReactFlow, {
   useEdgesState,
   useNodesState,
   useOnSelectionChange,
+  Node,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { roadmapNodeTypes } from './RoadmapNode';
 import { useCedarRoadmap } from '@/app/cedar-os/hooks';
 import { useRoadmapData } from './useRoadmapData';
+import { useCedarState } from 'cedar-os';
+import { FeatureNodeData } from '@/components/react-flow/FeatureNode';
 
 export function RoadmapCanvas() {
   const { nodes: initialNodes, edges: initialEdges } = useRoadmapData();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [selectedNodes, setSelectedNodes] = useCedarState<Node<FeatureNodeData>[]>(
+    'selectedNodes',
+    [],
+  );
 
-  const { selectedNodes, setSelectedNodes } = useCedarRoadmap(nodes, setNodes, edges, setEdges);
+  useCedarRoadmap(nodes, setNodes, edges, setEdges);
 
   useOnSelectionChange({
     onChange: ({ nodes }) => {

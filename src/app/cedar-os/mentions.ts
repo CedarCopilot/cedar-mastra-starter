@@ -1,12 +1,12 @@
 import React from 'react';
 import { Node, Edge } from 'reactflow';
-import { useStateBasedMentionProvider } from 'cedar-os';
+import { getCedarState, useStateBasedMentionProvider } from 'cedar-os';
 import { ArrowRight, Box } from 'lucide-react';
 import { FeatureNodeData } from '@/components/react-flow/FeatureNode';
 
 // [STEP 5]: To enable @ mentions, we use the useStateBasedMentionProvider hook.
 // This allows the user to reference any state value from the chat using something like @nodeName
-export function useRoadmapMentions(nodes: Node<FeatureNodeData>[]) {
+export function useRoadmapMentions() {
   // We use the useStateBasedMentionProvider hook to register a mention provider that references an existing state that we've registered.
   useStateBasedMentionProvider({
     stateKey: 'nodes',
@@ -17,6 +17,8 @@ export function useRoadmapMentions(nodes: Node<FeatureNodeData>[]) {
     icon: React.createElement(Box, { size: 16 }),
     color: '#3B82F6', // Blue color for features
   });
+
+  const nodes = getCedarState('nodes') as Node<FeatureNodeData>[];
 
   useStateBasedMentionProvider({
     stateKey: 'edges',
