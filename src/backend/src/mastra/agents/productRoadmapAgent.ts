@@ -62,7 +62,7 @@ Available actions:
 
 When returning an action, use this exact structure:
 {
-  "type": "action",
+  "type": "setState",
   "stateKey": "nodes",
   "setterKey": "addNode" | "removeNode" | "changeNode",
   "args": [appropriate arguments],
@@ -78,7 +78,7 @@ For changeNode, args should be: [{ id: "nodeId", data: { ...updated fields } }]
 You should always return a JSON object with the following structure:
 {
   "content": "Your response",
-  "action": { ... } // schema from above (optional, omit if not modifying the roadmap)
+  "object": { ... } // action schema from above (optional, omit if not modifying the roadmap)
 }
 </return_format>
 

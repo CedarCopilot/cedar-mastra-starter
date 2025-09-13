@@ -31,21 +31,21 @@ const NodeSchema = z.object({
 
 // Action schemas
 const AddNodeActionSchema = z.object({
-  type: z.literal('action'),
+  type: z.literal('setState'),
   stateKey: z.literal('nodes'),
   setterKey: z.literal('addNode'),
   args: z.array(NodeSchema),
 });
 
 const RemoveNodeActionSchema = z.object({
-  type: z.literal('action'),
+  type: z.literal('setState'),
   stateKey: z.literal('nodes'),
   setterKey: z.literal('removeNode'),
   args: z.array(z.string()), // Just the node ID
 });
 
 const ChangeNodeActionSchema = z.object({
-  type: z.literal('action'),
+  type: z.literal('setState'),
   stateKey: z.literal('nodes'),
   setterKey: z.literal('changeNode'),
   args: z.array(NodeSchema),
@@ -62,5 +62,5 @@ export const ActionResponseSchema = z.union([
 // or a chat message accompanied by an action.
 export const ExecuteFunctionResponseSchema = z.object({
   content: z.string(),
-  action: ActionResponseSchema.optional(),
+  object: ActionResponseSchema.optional(),
 });
