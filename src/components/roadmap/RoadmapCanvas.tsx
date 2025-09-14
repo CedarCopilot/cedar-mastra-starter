@@ -24,10 +24,11 @@ export function RoadmapCanvas() {
   const { nodes: initialNodes, edges: initialEdges } = useRoadmapData();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [selectedNodes, setSelectedNodes] = useCedarState<Node<FeatureNodeData>[]>(
-    'selectedNodes',
-    [],
-  );
+  const [selectedNodes, setSelectedNodes] = useCedarState<Node<FeatureNodeData>[]>({
+    key: 'selectedNodes',
+    initialValue: [],
+    description: 'Selected features in the roadmap',
+  });
 
   useCedarRoadmap(nodes, setNodes, edges, setEdges);
 

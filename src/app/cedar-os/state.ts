@@ -13,11 +13,11 @@ export function useRoadmapState(
   setEdges: React.Dispatch<React.SetStateAction<Edge[]>>,
 ) {
   // Using the useCedarState hook, we wrap and manage the entire state.
-  const [currentDate] = useCedarState(
-    'currentDate',
-    Date.now().toString(),
-    'The current date and time',
-  );
+  const [currentDate] = useCedarState({
+    key: 'currentDate',
+    initialValue: Date.now().toString(),
+    description: 'The current date and time',
+  });
 
   useEffect(() => {
     console.log('The current date and time is ' + currentDate);
@@ -29,20 +29,13 @@ export function useRoadmapState(
     setValue: setNodes,
     key: 'nodes',
     description: 'Product roadmap features and bugs that can be managed through conversation',
-    customSetters: {
+    stateSetters: {
       addNode: {
         name: 'addNode',
         description: 'Add a new feature or bug to the product roadmap',
-        parameters: [
-          {
-            name: 'node',
-            type: 'Node<FeatureNodeData>',
-            description: 'The feature/bug to add with title, description, type, and status',
-          },
-        ],
-        execute: (currentNodes, node) => {
+        execute: (currentNodes, setValue, args: { node: Node<FeatureNodeData> }) => {
           const nodes = currentNodes as Node<FeatureNodeData>[];
-          const nodeData = node as Node<FeatureNodeData>;
+          const nodeData = args.node;
 
           const newNode: Node<FeatureNodeData> = {
             ...nodeData,
@@ -61,26 +54,19 @@ export function useRoadmapState(
             },
           };
 
-          setNodes([...nodes, newNode]);
+          setValue([...nodes, newNode]);
         },
       },
 
       removeNode: {
         name: 'removeNode',
         description: 'Remove a feature or bug from the product roadmap',
-        parameters: [
-          {
-            name: 'id',
-            type: 'string',
-            description: 'The unique ID of the node to remove',
-          },
-        ],
-        execute: (currentNodes, id) => {
-          const nodeId = id as string;
+        execute: (currentNodes, setValue, args: { id: string }) => {
+          const nodeId = args.id;
           const nodes = currentNodes as Node<FeatureNodeData>[];
 
           // Remove the node
-          setNodes(nodes.filter((node) => node.id !== nodeId));
+          setValue(nodes.filter((node) => node.id !== nodeId));
 
           // Clean up any connected edges
           setEdges((edges) =>
@@ -92,18 +78,11 @@ export function useRoadmapState(
       changeNode: {
         name: 'changeNode',
         description: 'Update an existing feature or bug in the roadmap',
-        parameters: [
-          {
-            name: 'newNode',
-            type: 'Node<FeatureNodeData>',
-            description: 'The updated feature data including any changed fields',
-          },
-        ],
-        execute: (currentNodes, newNode) => {
+        execute: (currentNodes, setValue, args: { newNode: Node<FeatureNodeData> }) => {
           const nodes = currentNodes as Node<FeatureNodeData>[];
-          const updatedNode = newNode as Node<FeatureNodeData>;
+          const updatedNode = args.newNode;
 
-          setNodes(
+          setValue(
             nodes.map((node) =>
               node.id === updatedNode.id
                 ? { ...node, data: { ...node.data, ...updatedNode.data } }

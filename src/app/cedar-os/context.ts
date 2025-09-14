@@ -1,6 +1,6 @@
 import React from 'react';
 import { Node } from 'reactflow';
-import { useSubscribeStateToInputContext } from 'cedar-os';
+import { useSubscribeStateToAgentContext } from 'cedar-os';
 import { Box } from 'lucide-react';
 import { FeatureNodeData } from '@/components/react-flow/FeatureNode';
 
@@ -9,7 +9,7 @@ import { FeatureNodeData } from '@/components/react-flow/FeatureNode';
 // We also specify how we want to transform the selected nodes into a format that should be visible to the agent in its context.
 
 export function useRoadmapContext() {
-  useSubscribeStateToInputContext(
+  useSubscribeStateToAgentContext(
     'selectedNodes',
     (nodes: Node<FeatureNodeData>[]) => ({
       selectedFeatures: nodes.map((node) => ({
@@ -28,7 +28,7 @@ export function useRoadmapContext() {
     },
   );
 
-  useSubscribeStateToInputContext('nodes', (nodes: Node<FeatureNodeData>[]) => ({
+  useSubscribeStateToAgentContext('nodes', (nodes: Node<FeatureNodeData>[]) => ({
     features: nodes.map((node) => ({
       id: node.id,
       title: node.data.title,

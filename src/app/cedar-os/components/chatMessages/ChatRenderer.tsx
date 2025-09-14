@@ -1,31 +1,28 @@
-import {
-	useCedarStore,
-	useStyling,
-	Message,
-	TickerMessage,
-	MessageRenderer,
-	DialogueOptionsMessage,
-	MultipleChoiceMessage,
-	TodoListMessage,
-} from 'cedar-os';
-import { Ticker } from 'motion-plus-react';
-import React from 'react';
 import DialogueOptions from '@/app/cedar-os/components/chatMessages/DialogueOptions';
+import MarkdownRenderer from '@/app/cedar-os/components/chatMessages/MarkdownRenderer';
 import MultipleChoice from '@/app/cedar-os/components/chatMessages/MultipleChoice';
 import TodoList from '@/app/cedar-os/components/chatMessages/TodoList';
 import Flat3dContainer from '@/app/cedar-os/components/containers/Flat3dContainer';
-import MarkdownRenderer from '@/app/cedar-os/components/chatMessages/MarkdownRenderer';
+import {
+	DialogueOptionsMessage,
+	Message,
+	MessageRenderer,
+	MultipleChoiceMessage,
+	TickerMessage,
+	TodoListMessage,
+	useCedarStore,
+} from 'cedar-os';
+import { Ticker } from 'motion-plus-react';
+import React from 'react';
 
 interface ChatRendererProps {
 	message: Message;
 }
 
 export const ChatRenderer: React.FC<ChatRendererProps> = ({ message }) => {
-	const { styling } = useStyling();
 	const getMessageRenderers = useCedarStore(
 		(state) => state.getMessageRenderers
 	);
-	const isDark = styling.darkMode;
 
 	// Check if there is a registered renderer for this message type
 	const renderer = getMessageRenderers(message.type) as
@@ -48,7 +45,7 @@ export const ChatRenderer: React.FC<ChatRendererProps> = ({ message }) => {
 			'prose prose-sm inline-block rounded-xl py-2 relative text-sm w-fit [&>*+*]:mt-3 [&>ol>li+li]:mt-2 [&>ul>li+li]:mt-2 [&>ol>li>p]:mb-1 [&>ul>li>p]:mb-1';
 		const roleClasses =
 			role === 'bot' || role === 'assistant'
-				? `font-serif ${isDark ? 'text-gray-100' : 'text-[#141413]'}`
+				? `font-serif dark:text-gray-100 text-[#141413] w-full`
 				: 'text-[white] px-3';
 
 		const style =
@@ -137,7 +134,12 @@ export const ChatRenderer: React.FC<ChatRendererProps> = ({ message }) => {
 
 		default:
 			return (
-				<div className='max-w-[100%]'>
+				<div
+					className={`${
+						message.role === 'bot' || message.role === 'assistant'
+							? 'max-w-[100%] w-full'
+							: 'max-w-[80%] w-fit'
+					}`}>
 					<div {...getMessageStyles(message.role)}>
 						<MarkdownRenderer
 							content={

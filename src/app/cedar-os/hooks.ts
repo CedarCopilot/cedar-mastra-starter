@@ -16,7 +16,7 @@ export function useCedarRoadmap(
 ) {
   useRoadmapState(nodes, setNodes, edges, setEdges);
 
-  useRoadmapMentions(nodes);
+  useRoadmapMentions();
 
   useRoadmapContext();
 }
